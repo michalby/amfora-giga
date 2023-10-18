@@ -34,24 +34,29 @@ bool isNewWeightData = false;
 
 // Initialize the current state for the state machine
 State currentState = STATE_IDLE;
-DisplayState currentDisplayState = DISPLAY_IDLE;
+// DisplayState currentDisplayState = DISPLAY_IDLE;
+
+
+const char* transactionTypefilename = "transaction_types.txt";
+const char* minPriceFilename = "min_price.txt";
 
 // Zmienne "końcowe", po wszystkich przeliczeniach i konwersjach, ze stringu wagi do liczb itd.
 unsigned long cardNumber = 0;   // Valid card number obtained from the card reader
 float weight = 0.0;             // Mass as a floating-point number calculated from weight data
 float transactionAmount = 0.0;  // Floating-point number calculated from mass and price, rounded accordingly
 byte clubMembershipNumber;      // Club membership number
-byte priceType;                 // Price type
+int transactionPrice;           // Price type
 char userName[20];              // User's name from the database
 bool isAuthorized = false;      // Variable to determine if someone has an active account
 float accountBalance = 0.0;     // User's account balance, updated with each transaction
+float minPrice = 2;             // minimal price for firing
+char transactionType[11];
 
 // Temporary variables for data processing, consider moving these as local variables if possible
 char cardData[8] = "1234567";
 char weightString[7];
 char priceString[7];
 char amountString[7];
-char transactionType[11];
 byte blockIndex;
 
 const byte numCharsWeight = 32;
@@ -85,6 +90,11 @@ void loop() {
 
   // Execute the current state in the state machine
   executeState(currentState);
+}
+
+void handleError(const char* errorMessage) {
+  // You can implement the error handling logic here, e.g., printing to Serial or taking appropriate actions
+  Serial.println(errorMessage);
 }
 
 // Input/Output functions
@@ -160,31 +170,94 @@ void processWeightData() {
 
   // Convert strings to floating-point and integer values
   weight = atof(weightString);
-  priceType = atoi(priceString);
+  transactionPrice = atoi(priceString);
   transactionAmount = atof(amountString);
 
   // Round the calculated value
   transactionAmount = roundAmount(transactionAmount);
 
   // Determine the type of transaction based on price
-  determineTransactionType(priceType);
+  transactionType = determineTransactionType(transactionPrice);
 }
 
 // wiadomo
 float roundAmount(float originalAmount) {
   // Round the value and ensure it's at least 2
   float roundedAmount = round(originalAmount);
-  if (roundedAmount <= 2) {
-    roundedAmount = 2;
+  minPrice = getMinimalPrice;
+  if (roundedAmount <= minPrice) {
+    roundedAmount = minPrice;
   }
   return roundedAmount;
 }
 
+int getMinimalPrice() {
+  int minimalPrice = 0;
+
+  // Initialize the SD card
+  if (!SD.begin(4)) { // You may need to change the pin number (4) to match your hardware
+    handleError("SD initialization failed");
+    return minimalPrice;
+  }
+
+  // Open the "min_price.txt" file
+  File file = SD.open(minPriceFilename);
+  if (!file) {
+    handleError("Could not open min_price.txt");
+    return minimalPrice;
+  }
+
+  // Read the integer from the file
+  if (file.available()) {
+    minimalPrice = file.parseInt();
+  } else {
+    handleError("No data found in min_price.txt");
+  }
+
+  // Close the file
+  file.close();
+
+  return minimalPrice;
+}
+
 // tutaj w starej wersji było po prostu - jak na wadze wpisana była odpowiednia cena
 // to na jej podstawie wybierany był typ wypału - biskwit, szliwo, szkliwo wysza temperatura itd
-void determineTransactionType(byte priceType) {
-  // Implement this function to determine the type of transaction based on the price
-  // You can set the transactionType variable here
+// ze zmiennych globalnych zapisanych w pamięci programu
+// teraz pobierane są dane z pliku na karcie pamięci - nie testowałem tego jeszcze
+char* determineTransactionType(int transactionPrice) {
+  static char transactionType[50]; // Assuming transaction types won't exceed 50 characters
+
+  // Initialize the SD card
+  if (!SD.begin(4)) { // You may need to change the pin number (4) to match your hardware
+    handleError("SD initialization failed");
+    return transactionType;
+  }
+
+  // Open the data file
+  File file = SD.open(transactionTypefilename);
+  if (!file) {
+    handleError("Could not open file");
+    return transactionType;
+  }
+
+  // Read the file line by line and determine the transaction type
+  while (file.available()) {
+    String line = file.readStringUntil('\n');
+    int separatorIndex = line.indexOf(' ');
+    if (separatorIndex != -1) {
+      int price = line.substring(0, separatorIndex).toInt();
+      if (price == transactionPrice) {
+        strcpy(transactionType, line.substring(separatorIndex + 1).c_str());
+        file.close();
+        return transactionType;
+      }
+    }
+  }
+
+  // Close the file if the transactionPrice is not found
+  file.close();
+  handleError("Transaction type not found");
+  return transactionType;
 }
 
 // User-related functions
@@ -198,7 +271,7 @@ void identifyUser() {
 
   // Find the user's index, name, balance, and check if the account is active
   blockIndex = findUserIndex(cardNumber);
-  getUserName(cardNumber);
+  userName = getUserName(cardNumber);
   accountBalance = checkAccountBalance(cardNumber);
   isAuthorized = checkAuthorization(cardNumber, accountBalance);
 }
@@ -251,7 +324,7 @@ State nextState(State currentState) {
   switch (currentState) {
     case STATE_IDLE:
       if (isAuthorized) {
-        changeDisplay(DISPLAY_COLLECTING_DATA);
+        // changeDisplay(DISPLAY_COLLECTING_DATA);
         return STATE_COLLECT_DATA;
       } else {
         return STATE_IDLE;
@@ -390,7 +463,7 @@ void printReceipt() {
     int fnaleznosc_intfrac = trunc(fnaleznosc_frac * 100);
 
     // Create a barcode
-    snprintf(kodkreskowy, 15, "%s%03d%02d%02d%d", data_kod, blockIndex, fnaleznosc_int, fnaleznosc_intfrac, priceType);
+    snprintf(kodkreskowy, 15, "%s%03d%02d%02d%d", data_kod, blockIndex, fnaleznosc_int, fnaleznosc_intfrac, transactionPrice);
 
     // Print the receipt
     printer.setFont('A');
