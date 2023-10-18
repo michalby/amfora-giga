@@ -17,14 +17,16 @@ enum State {
   STATE_SAVE_DATA
 };
 
-// Define the states for the display state machine
-enum DisplayState {
-  DISPLAY_IDLE,
-  DISPLAY_COLLECTING_DATA,
-  DISPLAY_CALCULATING_DATA,
-  DISPLAY_PRINTING,
-  DISPLAY_SAVING_DATA
-};
+// Define the states for the display state machine - to na potem
+// dopiero przy działającym ekranie trzeba się będzie zastanowić, jakie ekrany chcemy mieć
+//
+// enum DisplayState {
+//   DISPLAY_IDLE,
+//   DISPLAY_COLLECTING_DATA,
+//   DISPLAY_CALCULATING_DATA,
+//   DISPLAY_PRINTING,
+//   DISPLAY_SAVING_DATA
+// };
 
 // Boolean flags to indicate new card and weight data
 bool isNewCardData = false;
@@ -34,7 +36,7 @@ bool isNewWeightData = false;
 State currentState = STATE_IDLE;
 DisplayState currentDisplayState = DISPLAY_IDLE;
 
-// Variables for correctly processed data
+// Zmienne "końcowe", po wszystkich przeliczeniach i konwersjach, ze stringu wagi do liczb itd.
 unsigned long cardNumber = 0;   // Valid card number obtained from the card reader
 float weight = 0.0;             // Mass as a floating-point number calculated from weight data
 float transactionAmount = 0.0;  // Floating-point number calculated from mass and price, rounded accordingly
@@ -87,6 +89,10 @@ void loop() {
 
 // Input/Output functions
 
+
+// Ta funkcja jest 1:1 skopiowana z poprzedniej wersji programu, działała więc powinna działać dalej...
+// wygląda dziwnie, wiem, ale chyba w taki sposob musi wyglądać pobieranie danych z czynnika karty
+// na podstawie kodu producenta, trochę dostosowane z tego co pamiętam
 void receiveCardData() {
   static bool isReceiving = false;
   static byte dataIndex = 0;
@@ -111,6 +117,9 @@ void receiveCardData() {
   }
 }
 
+
+// tez działało, podobna zasada jak pobieranie danych z karty.
+// na podstawie przykładowego szkicu producenta
 void receiveWeightData() {
   static bool isReceiving = false;
   static byte dataIndex = 0;
@@ -142,6 +151,7 @@ void receiveWeightData() {
 
 // Data processing functions
 
+// wyciąganie masy, ceny i kwoty (masa*cena) ze stringu wysyłanego przez wagę
 void processWeightData() {
   // Extract relevant parts of the weight message
   strncpy(weightString, weightMessage + 5, 5);
@@ -160,6 +170,7 @@ void processWeightData() {
   determineTransactionType(priceType);
 }
 
+// wiadomo
 float roundAmount(float originalAmount) {
   // Round the value and ensure it's at least 2
   float roundedAmount = round(originalAmount);
@@ -169,6 +180,8 @@ float roundAmount(float originalAmount) {
   return roundedAmount;
 }
 
+// tutaj w starej wersji było po prostu - jak na wadze wpisana była odpowiednia cena
+// to na jej podstawie wybierany był typ wypału - biskwit, szliwo, szkliwo wysza temperatura itd
 void determineTransactionType(byte priceType) {
   // Implement this function to determine the type of transaction based on the price
   // You can set the transactionType variable here
@@ -176,6 +189,8 @@ void determineTransactionType(byte priceType) {
 
 // User-related functions
 
+// nowa funkcja, łączy kilka rzeczy z poprzedniego programu, podzieliłem to na drobniejsze funkcje
+// bo taka podobno jest dobra praktyka, ale się nie znam :D
 void identifyUser() {
   // Extract card number from the message
   strncpy(cardData, cardMessage + 3, 7);
@@ -188,41 +203,50 @@ void identifyUser() {
   isAuthorized = checkAuthorization(cardNumber, accountBalance);
 }
 
+// w poprzedniej wersji programu wyszukiwało index po znalezieniu numeru w tablicy.
+// tablica była wgrywana z pamięci programu
 int findUserIndex(unsigned long cardNumber) {
   // Implement this function to find the index corresponding to the card number
 }
 
+// w poprzedniej wersji programu sprawdzało wartość w EEPROM na podstawie indexu
+// 1 - zablokowany, 0 - odblokowany lub na odwrot
 bool checkAuthorization(unsigned long cardNumber, float accountBalance) {
   // Implement this function to check if the account is authorized
 }
 
+// w poprzedniej wersji programu sprawdzało na podstawie indexu w tablicy stringow
 char* getUserName(unsigned long cardNumber) {
   // Implement this function to retrieve the user's name from the database
 }
 
+
+// tu na razie pusto, zostawiam takie placeholdery na przyszłość
 // Display functions
-
-void initializeDisplay() {
-  // Implement display initialization here
-}
-
-void updateDisplay(DisplayState currentDisplayState) {
-  switch (currentDisplayState) {
-    case DISPLAY_IDLE:
-      // Update display content for idle state
-      // You can display relevant information, messages, etc.
-      break;
-    case DISPLAY_COLLECTING_DATA:
-      // Update display content for collectingData state
-      break;
-      // Add cases for other states
-  }
-  // Refresh the epaper display with the updated content
-  refreshEpaperDisplay();
-}
+// void initializeDisplay() {
+//   // Implement display initialization here
+// }
+//
+// void updateDisplay(DisplayState currentDisplayState) {
+//   switch (currentDisplayState) {
+//     case DISPLAY_IDLE:
+//       // Update display content for idle state
+//       // You can display relevant information, messages, etc.
+//       break;
+//     case DISPLAY_COLLECTING_DATA:
+//       // Update display content for collectingData state
+//       break;
+//       // Add cases for other states
+//   }
+//   // Refresh the epaper display with the updated content
+//   refreshEpaperDisplay();
+// }
 
 // State machine functions
 
+// przełączanie między "trybami" maszyny stanow na podstawie spelnianych warunkow.
+// w poprzedniej wersji programu maszyna stanow była zrobiona w przedziwny sposob,
+// ale jakoś działało...
 State nextState(State currentState) {
   switch (currentState) {
     case STATE_IDLE:
@@ -250,12 +274,16 @@ State nextState(State currentState) {
   }
 }
 
+// workflow całego systemu z funkcjami do odpalenia podczas kazdego stanu maszyny
+// trzeba to rozbijać na funkcje? Zeby kazdy stan maszyny miał w zawartości tylko call funkcji
+// w stylu void executeSTATE_IDLE {} ?
 void executeState(State currentState) {
   switch (currentState) {
     case STATE_IDLE:
       Serial.println("State: STATE_IDLE");
 
       // Add actions for STATE_IDLE here
+      // pobieranie numeru karty z czytnika i identyfikacja danych uzytkownika
 
       portKarty.listen();
 
@@ -273,6 +301,11 @@ void executeState(State currentState) {
       Serial.println("State: STATE_COLLECT_DATA");
 
       // Add actions for STATE_COLLECT_DATA here
+      // pobieranie danych z wagi, zegara (niezaimplementowane)
+      // moze pobieranie danych z bazy? (jakich?)
+      // cennik, w stylu biskwit = 10zł/kg, szkliwo 25zł/kg itd
+      // moze to tutaj powinno wyladować pobieranie stanu konta uzytkownika, a nie w identifyUser()
+
       portWagi.listen();
 
       if (isNewWeightData) {
@@ -287,6 +320,7 @@ void executeState(State currentState) {
       Serial.println("State: STATE_CALCULATE_DATA");
 
       // Add actions for STATE_CALCULATE_DATA here
+      // na podstawie wszystkich zebranych danych liczenie... rzeczy :D
 
       processWeightData();
       currentState = nextState(currentState);
@@ -297,6 +331,7 @@ void executeState(State currentState) {
       Serial.println("State: STATE_PRINT");
 
       // Add actions for STATE_PRINT here
+      // tylko drukowanie rzeczy na drukarce
 
       // Handle the printing process
       printReceipt();
@@ -307,6 +342,8 @@ void executeState(State currentState) {
       Serial.println("State: STATE_SAVE_DATA");
 
       // Add actions for STATE_SAVE_DATA here
+      // zapisywanie czego trzeba w plikach, wypały na liście wypałow
+      // stan konta w uzytkowniku itd.
       break;
 
     default:
@@ -314,11 +351,18 @@ void executeState(State currentState) {
   }
 }
 
-void changeDisplay(DisplayState newDisplayState) {
-  currentDisplayState = newDisplayState;
-  updateDisplay(currentDisplayState);
-}
+// void changeDisplay(DisplayState newDisplayState) {
+//   currentDisplayState = newDisplayState;
+//   updateDisplay(currentDisplayState);
+// }
 
+
+// na razie skopiowane ze starej wersji, muszę to jeszcze uporządkować
+// nowe talony będą słuzyły do tego samego co stare, ale mogą mieć dodatkowe informacje
+// albo być bardziej kompaktowe, zeby było eko.
+// ze względu na to, ze wydrukowanie talonu będzie jednoczesnie odejmowalo kwotę z konta
+// talony wydrukowane przez przypadek muszą lądować u Roberta, zeby mogl zwrocić hajs na konto
+// (tak to sobie wyobrazaliśmy na razie - bedzie mniej skanowania niz skanowanie wszystkich poprawnych talonow)
 void printReceipt() {
   // Add actions for printing the receipt here
 
@@ -403,6 +447,6 @@ void printReceipt() {
   }
 }
 
-void refreshEpaperDisplay() {
-  // Add actions for refreshing the epaper display here
-}
+// void refreshEpaperDisplay() {
+//   // Add actions for refreshing the epaper display here
+// }
