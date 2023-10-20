@@ -54,10 +54,6 @@ float minPrice = 2;             // minimal price for firing
 char transactionType[11];
 
 // Temporary variables for data processing, consider moving these as local variables if possible
-char cardData[8] = "1234567";
-char weightString[7];
-char priceString[7];
-char amountString[7];
 byte blockIndex;
 
 const byte numCharsWeight = 32;
@@ -66,10 +62,10 @@ const byte numCharsCard = 13;
 char cardMessage[numCharsCard];
 byte numReceived = 0;
 
-const byte biscuitPrice = 10;
+const byte bisquePrice = 10;
 const byte glazePrice1 = 22;
 const byte glazePrice2 = 20;
-const byte sharpPrice = 25;
+const byte highTempPrice = 25;
 
 void setup() {
   // Initialize software serial ports
@@ -164,6 +160,10 @@ void receiveWeightData() {
 
 // wyciąganie masy, ceny i kwoty (masa*cena) ze stringu wysyłanego przez wagę
 void processWeightData() {
+  char weightString[7];
+  char priceString[7];
+  char amountString[7];
+
   // Extract relevant parts of the weight message
   strncpy(weightString, weightMessage + 5, 5);
   strncpy(priceString, weightMessage + 13, 5);
@@ -269,6 +269,7 @@ char* determineTransactionType(int transactionPrice) {
 // bo taka podobno jest dobra praktyka, ale się nie znam :D
 void identifyUser() {
   // Extract card number from the message
+  char cardData[8] = "1234567";
   strncpy(cardData, cardMessage + 3, 7);
   cardNumber = strtoul(cardData, NULL, 16);
 
@@ -281,7 +282,6 @@ void identifyUser() {
 
 // w poprzedniej wersji programu wyszukiwało index po znalezieniu numeru w tablicy.
 // tablica była wgrywana z pamięci programu
-
 int findUserIndex(unsigned long cardNumber) {
   File file = SD.open(userDataFilename);
   if (!file) return -1; // Unable to open the file
