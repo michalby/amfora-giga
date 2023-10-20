@@ -39,6 +39,7 @@ State currentState = STATE_IDLE;
 
 const char* transactionTypefilename = "transaction_types.txt";
 const char* minPriceFilename = "min_price.txt";
+const char* userDataFilename = "user_data.csv"
 
 // Zmienne "końcowe", po wszystkich przeliczeniach i konwersjach, ze stringu wagi do liczb itd.
 unsigned long cardNumber = 0;   // Valid card number obtained from the card reader
@@ -191,6 +192,8 @@ float roundAmount(float originalAmount) {
   return roundedAmount;
 }
 
+
+// pobiera wartość z karty pamięci z pliku min_price.txt
 int getMinimalPrice() {
   int minimalPrice = 0;
 
@@ -278,19 +281,83 @@ void identifyUser() {
 
 // w poprzedniej wersji programu wyszukiwało index po znalezieniu numeru w tablicy.
 // tablica była wgrywana z pamięci programu
+
 int findUserIndex(unsigned long cardNumber) {
-  // Implement this function to find the index corresponding to the card number
+  File file = SD.open(userDataFilename);
+  if (!file) return -1; // Unable to open the file
+
+  char line[100]; // Assuming a line won't be longer than 100 characters
+  int index = -1;
+  while (file.available()) {
+    file.read(line, sizeof(line));
+    unsigned long currentCardNumber = strtoul(strtok(line, ","), NULL, 10);
+    if (currentCardNumber == cardNumber) {
+      index = atoi(strtok(NULL, ","));
+      break;
+    }
+  }
+  file.close();
+  return index;
 }
 
-// w poprzedniej wersji programu sprawdzało wartość w EEPROM na podstawie indexu
-// 1 - zablokowany, 0 - odblokowany lub na odwrot
 bool checkAuthorization(unsigned long cardNumber, float accountBalance) {
-  // Implement this function to check if the account is authorized
+  File file = SD.open(userDataFilename);
+  if (!file) return false; 
+
+  char line[100];
+  bool isAuthorized = false;
+  while (file.available()) {
+    file.read(line, sizeof(line));
+    unsigned long currentCardNumber = strtoul(strtok(line, ","), NULL, 10);
+    if (currentCardNumber == cardNumber) {
+      strtok(NULL, ","); // Skip the membership number
+      strtok(NULL, ","); // Skip the user name
+      isAuthorized = atoi(strtok(NULL, ",")) ? true : false;
+      break;
+    }
+  }
+  file.close();
+  return isAuthorized;
 }
 
-// w poprzedniej wersji programu sprawdzało na podstawie indexu w tablicy stringow
 char* getUserName(unsigned long cardNumber) {
-  // Implement this function to retrieve the user's name from the database
+  File file = SD.open(userDataFilename);
+  if (!file) return NULL;
+
+  char line[100];
+  static char userName[50]; // Assuming a name won't be longer than 50 characters
+  while (file.available()) {
+    file.read(line, sizeof(line));
+    unsigned long currentCardNumber = strtoul(strtok(line, ","), NULL, 10);
+    if (currentCardNumber == cardNumber) {
+      strtok(NULL, ","); // Skip the membership number
+      strcpy(userName, strtok(NULL, ","));
+      break;
+    }
+  }
+  file.close();
+  return userName;
+}
+
+float checkAccountBalance(unsigned long cardNumber){
+  File file = SD.open(userDataFilename);
+  if (!file) return -1;
+
+  char line[100];
+  float balance = -1;
+  while (file.available()) {
+    file.read(line, sizeof(line));
+    unsigned long currentCardNumber = strtoul(strtok(line, ","), NULL, 10);
+    if (currentCardNumber == cardNumber) {
+      strtok(NULL, ","); // Skip the membership number
+      strtok(NULL, ","); // Skip the user name
+      strtok(NULL, ","); // Skip the authorization
+      balance = atof(strtok(NULL, ","));
+      break;
+    }
+  }
+  file.close();
+  return balance;
 }
 
 
