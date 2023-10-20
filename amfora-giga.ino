@@ -67,8 +67,8 @@ char cardMessage[numCharsCard];
 byte numReceived = 0;
 
 const byte biscuitPrice = 10;
-const byte icingPrice1 = 22;
-const byte icingPrice2 = 20;
+const byte glazePrice1 = 22;
+const byte glazePrice2 = 20;
 const byte sharpPrice = 25;
 
 void setup() {
