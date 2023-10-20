@@ -54,7 +54,7 @@ float minPrice = 2;             // minimal price for firing
 char transactionType[11];
 
 // Temporary variables for data processing, consider moving these as local variables if possible
-byte blockIndex;
+byte userNumber;
 
 const byte numCharsWeight = 32;
 char weightMessage[numCharsWeight];
@@ -274,7 +274,7 @@ void identifyUser() {
   cardNumber = strtoul(cardData, NULL, 16);
 
   // Find the user's index, name, balance, and check if the account is active
-  blockIndex = findUserIndex(cardNumber);
+  userNumber = findUserIndex(cardNumber);
   userName = getUserName(cardNumber);
   accountBalance = checkAccountBalance(cardNumber);
   isAuthorized = checkAuthorization(cardNumber, accountBalance);
@@ -389,20 +389,10 @@ float checkAccountBalance(unsigned long cardNumber){
 // ale jakoś działało...
 State nextState(State currentState) {
   switch (currentState) {
-    case STATE_IDLE:
-      if (isAuthorized) {
-        // changeDisplay(DISPLAY_COLLECTING_DATA);
-        return STATE_COLLECT_DATA;
-      } else {
+    case STATE_IDLE;
         return STATE_IDLE;
-      }
     case STATE_COLLECT_DATA:
-      if (isNewWeightData && isAuthorized) {
-        isNewWeightData = false;
-        return STATE_CALCULATE_DATA;
-      } else {
         return STATE_IDLE;
-      }
     case STATE_CALCULATE_DATA:
       return STATE_PRINT;
     case STATE_PRINT:
@@ -530,7 +520,7 @@ void printReceipt() {
     int fnaleznosc_intfrac = trunc(fnaleznosc_frac * 100);
 
     // Create a barcode
-    snprintf(kodkreskowy, 15, "%s%03d%02d%02d%d", data_kod, blockIndex, fnaleznosc_int, fnaleznosc_intfrac, transactionPrice);
+    snprintf(kodkreskowy, 15, "%s%03d%02d%02d%d", data_kod, userNumber, fnaleznosc_int, fnaleznosc_intfrac, transactionPrice);
 
     // Print the receipt
     printer.setFont('A');
@@ -547,17 +537,17 @@ void printReceipt() {
     printer.setSize('L');
     printer.doubleHeightOff();
     printer.boldOn();
-    if (blockIndex == 192) {
+    if (userNumber == 192) {
       printer.println(F("KLUB SENIORA"));
     } else {
       printer.println(transactionType);
     }
     printer.setSize('M');
     printer.doubleHeightOff();
-    printer.print(blockIndex);
+    printer.print(userNumber);
     printer.print(F(" "));
-    if (blockIndex != 217) {
-      strcpy_P(userName, (char*)pgm_read_word(&(string_table[blockIndex])));
+    if (userNumber != 217) {
+      strcpy_P(userName, (char*)pgm_read_word(&(string_table[userNumber])));
       printer.println(userName);
     }
     printer.boldOff();
