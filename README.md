@@ -7,3 +7,5 @@ Stara wersja, działająca na Arduino Pro Mini. Podłączona drukarka talonów U
 ## amfora-giga.ino
 
 Nowa wersja, przeniosłem większość funkcjonalności. Ma działać na Arduino Giga R1 WiFi. Tym razem oprócz drukarki, czytnika kart i połączenia z wagą, planowany jest czytnik kart SD do wgrywania plików. Może uda się w danych na karcie zapisywać stan konta i odliczać na bieżąco kasę za konkretną pracę, wtedy od razu widać przy ważeniu jaki ma się stan konta itd. W wersji wymarzonej dane synchronizowane są z czymś, może z bazą danych Firebase, i możliwa jest obsługa systemu też przez jakąś apkę. Zegar RTC jest wbudowany w mikrokontroler, jest kilka hardłerowych portów UART zamiast SoftwareSerial jak w starej wersji, od razu jest WiFi, dwa rdzenie procesora - więc można jednocześnie uruchamiać program do obsługi wagi i drugi program synchronizujący dane z chmurą, żeby nie blokować podstawowej funkcjonalności. Jest jeszcze port USB HID, więc można podłączyć klawiaturę na przykład. Planowany ekran to jakiś epaper (już jest kupiony), ale coś czuję, że z tym będzie sporo problemów...
+
+test codeapp
