@@ -4,6 +4,31 @@
 #include <math.h>              // Library for math operations
 #include <Adafruit_Thermal.h>  // Library for Adafruit Thermal Printer
 
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_EPD.h>
+
+// Define the pins used for the e-paper display
+#define SRAM_CS     10
+#define EPD_CS      9
+#define EPD_DC      8
+#define EPD_RESET   7
+#define EPD_BUSY    6
+
+// Create an instance of the display
+Adafruit_IL0373 display(400, 300, EPD_DC, EPD_RESET, EPD_CS, SRAM_CS, EPD_BUSY);
+
+// Define the states for the display state machine - to na potem
+// dopiero przy działającym ekranie trzeba się będzie zastanowić, jakie ekrany chcemy mieć
+//
+// enum DisplayState {
+//   DISPLAY_IDLE,
+//   DISPLAY_COLLECTING_DATA,
+//   DISPLAY_CALCULATING_DATA,
+//   DISPLAY_PRINTING,
+//   DISPLAY_SAVING_DATA
+// };
 
 // Create an instance of the Adafruit_Thermal class for the thermal printer
 Adafruit_Thermal printer(&Serial4);
@@ -16,17 +41,6 @@ enum State {
   STATE_PRINT,
   STATE_SAVE_DATA
 };
-
-// Define the states for the display state machine - to na potem
-// dopiero przy działającym ekranie trzeba się będzie zastanowić, jakie ekrany chcemy mieć
-//
-// enum DisplayState {
-//   DISPLAY_IDLE,
-//   DISPLAY_COLLECTING_DATA,
-//   DISPLAY_CALCULATING_DATA,
-//   DISPLAY_PRINTING,
-//   DISPLAY_SAVING_DATA
-// };
 
 // Boolean flags to indicate new card and weight data
 bool isNewCardData = false;
@@ -73,8 +87,12 @@ void setup() {
   Serial4.begin(19200);  // Printer port
   Serial2.begin(9600);   // Card reader port
 
-  // Initialize and set up the display state
-  initializeDisplay();
+  // Initialize the e-paper display
+  display.begin();
+  
+  // Clear the buffer
+  display.clearBuffer();
+
 
   // Begin communication with the printer
   printer.begin();
